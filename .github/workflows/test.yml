@@ -1,0 +1,19 @@
+# 测试工作流 - 用于验证 GitHub Actions 是否正常工作
+name: Test Workflow
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Test
+        run: echo "GitHub Actions is working!"
+
