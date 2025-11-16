@@ -1,0 +1,127 @@
+# GitCode CI/CD 配置文件
+# GitCode 基于 GitLab，使用 GitLab CI/CD
+# 注意：GitCode 可能不提供 macOS runner，macOS 构建建议使用 GitHub Actions
+
+stages:
+  - build
+
+variables:
+  GO_VERSION: "1.24"
+  NODE_VERSION: "18"
+
+# Windows 构建
+build:windows:
+  stage: build
+  image: golang:${GO_VERSION}
+  tags:
+    - windows  # 如果 GitCode 有 Windows runner，否则使用 Linux runner
+  before_script:
+    - |
+      if [ -f /etc/os-release ]; then
+        # Linux 环境
+        apt-get update -qq && apt-get install -y -qq nodejs npm wails
+      else
+        # Windows 环境（如果支持）
+        echo "Windows environment detected"
+      fi
+    - go version
+    - node --version || echo "Node.js not found, will install"
+    - npm --version || echo "npm not found, will install"
+    - |
+      if ! command -v wails &> /dev/null; then
+        echo "Installing Wails..."
+        go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      fi
+  script:
+    - export PATH=$PATH:$(go env GOPATH)/bin
+    - cd frontend && npm install && npm run build && cd ..
+    - |
+      # 设置 Windows 交叉编译环境
+      export GOOS=windows
+      export GOARCH=amd64
+      export CGO_ENABLED=0
+      wails build
+  artifacts:
+    paths:
+      - build/bin/*.exe
+      - build/bin/*.msi
+    expire_in: 1 week
+  only:
+    - main
+    - master
+    - tags
+  # 如果 GitCode 没有 Windows runner，允许失败
+  allow_failure: false
+
+# Linux 构建
+build:linux:
+  stage: build
+  image: golang:${GO_VERSION}
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq nodejs npm
+    - go version
+    - node --version
+    - npm --version
+    - |
+      if ! command -v wails &> /dev/null; then
+        echo "Installing Wails..."
+        go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      fi
+  script:
+    - export PATH=$PATH:$(go env GOPATH)/bin
+    - cd frontend && npm install && npm run build && cd ..
+    - wails build
+  artifacts:
+    paths:
+      - build/bin/*
+    expire_in: 1 week
+  only:
+    - main
+    - master
+    - tags
+
+# macOS 构建（GitCode 通常不提供 macOS runner）
+# 如果 GitCode 没有 macOS runner，这个 job 会失败
+# 建议使用 GitHub Actions 构建 macOS 版本（见 .github/workflows/build.yml）
+build:macos:
+  stage: build
+  image: golang:${GO_VERSION}
+  tags:
+    - macos  # 如果 GitCode 有 macOS runner
+  before_script:
+    - brew install node || echo "Node.js already installed"
+    - go version
+    - node --version
+    - npm --version
+    - |
+      if ! command -v wails &> /dev/null; then
+        echo "Installing Wails..."
+        go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      fi
+  script:
+    - export PATH=$PATH:$(go env GOPATH)/bin
+    - cd frontend && npm install && npm run build && cd ..
+    - |
+      # 构建 Intel Mac 版本
+      export GOOS=darwin
+      export GOARCH=amd64
+      export CGO_ENABLED=0
+      wails build
+    - |
+      # 构建 Apple Silicon 版本
+      export GOOS=darwin
+      export GOARCH=arm64
+      export CGO_ENABLED=0
+      wails build
+  artifacts:
+    paths:
+      - build/bin/*.app
+      - build/bin/*.dmg
+    expire_in: 1 week
+  only:
+    - main
+    - master
+    - tags
+  # 如果 GitCode 没有 macOS runner，允许失败
+  allow_failure: true
+

@@ -55,6 +55,8 @@ wails dev
 
 ### 构建应用
 
+#### Windows 平台
+
 构建生产版本：
 
 ```bash
@@ -62,6 +64,78 @@ wails build
 ```
 
 构建完成后，可执行文件将位于 `build/bin/` 目录下。
+
+#### Mac 平台
+
+##### 方式一：在 Windows 上交叉编译（推荐）
+
+可以在 Windows 系统上直接构建 Mac 版本：
+
+```powershell
+# 构建 Mac 版本 (默认 amd64)
+.\script\build-mac.ps1
+
+# 清理后构建
+.\script\build-mac.ps1 -Clean
+
+# 构建 ARM64 版本（Apple Silicon）
+.\script\build-mac.ps1 -Arch arm64
+
+# 构建 AMD64 版本（Intel Mac）
+.\script\build-mac.ps1 -Arch amd64
+```
+
+**注意事项**:
+- 构建的应用包未经过代码签名，在 Mac 上首次运行可能需要右键 -> 打开
+- 建议在 macOS 系统上测试应用是否正常运行
+- 如需代码签名，请在 macOS 系统上使用开发者证书进行签名
+
+##### 方式二：在 macOS 系统上构建
+
+使用构建脚本（推荐）：
+
+```bash
+# 构建发布版本
+./script/build-mac.sh
+
+# 清理后构建
+./script/build-mac.sh --clean
+
+# 构建开发版本
+./script/build-mac.sh --dev
+```
+
+或直接使用 wails 命令：
+
+```bash
+# 构建生产版本
+wails build
+
+# 构建开发版本
+wails build -dev
+```
+
+**Mac 构建要求**:
+- 需要安装 Xcode Command Line Tools: `xcode-select --install`
+- 如需代码签名，需要配置开发者证书
+
+构建完成后，应用包将位于 `build/bin/test-chromedp.app`。
+
+## CI/CD 自动构建
+
+项目已配置 CI/CD，支持自动构建多平台版本。
+
+### GitCode CI/CD（GitLab CI）
+- 配置文件：`.gitlab-ci.yml`
+- 支持平台：Linux、Windows（如果 GitCode 提供 runner）
+- 使用方法：推送代码到 GitCode，自动触发构建
+
+### GitHub Actions（推荐用于 macOS）
+- 配置文件：`.github/workflows/build.yml`
+- 支持平台：Windows、Linux、macOS（包括 Intel 和 Apple Silicon）
+- 使用方法：推送代码到 GitHub，自动触发构建
+
+详细说明请查看：[CI/CD 配置说明](md/CI-CD配置说明.md)
 
 ## 项目配置
 
